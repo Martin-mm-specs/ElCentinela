@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - El Centinela{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="stats-number">{{ total_insumos }}</div>
+            <div class="stats-label">Insumos Activos</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="stats-number" style="color: #e74c3c;">{{ cantidad_por_expirar }}</div>
+            <div class="stats-label">Por Expirar (3 días)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="stats-number" style="color: #c0392b;">{{ cantidad_expirados }}</div>
+            <div class="stats-label">Expirados</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="stats-number">{{ usos_hoy.count }}</div>
+            <div class="stats-label">Usos Registrados Hoy</div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Section -->
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                🔔 Alertas y Mensajes ({{ alertas.count }})
+            </div>
+            <div class="card-body">
+                {% if alertas %}
+                    <div class="list-group">
+                        {% for alerta in alertas %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ alerta.titulo }}</h6>
+                                        <p class="mb-2 text-muted">{{ alerta.descripcion }}</p>
+                                        <small class="text-secondary">
+                                            {{ alerta.fecha_creacion|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        {% if alerta.insumo %}
+                                            <a href="{% url 'inventario:insumo_detail' alerta.insumo.pk %}" class="btn btn-sm btn-info">
+                                                Ver
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'inventario:descartar_alerta' alerta.pk %}" class="btn btn-sm btn-outline-danger">
+                                            ✕
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading">✅ Inventario en Orden</h5>
+                        <p class="mb-0">No hay alertas. Tu inventario está en perfecto estado.</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Usage Section -->
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                📝 Usos Registrados Hoy
+            </div>
+            <div class="card-body">
+                {% if usos_hoy %}
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Insumo</th>
+                                <th>Cantidad Usada</th>
+                                <th>Unidad</th>
+                                <th>Notas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for uso in usos_hoy %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'inventario:insumo_detail' uso.insumo.pk %}">
+                                            {{ uso.insumo.nombre }}
+                                        </a>
+                                    </td>
+                                    <td>{{ uso.cantidad_usada }}</td>
+                                    <td>{{ uso.insumo.get_unidad_display }}</td>
+                                    <td>{{ uso.notas|default:"Sin notas" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">No hay usos registrados para hoy. <a href="{% url 'inventario:uso_create' %}">Registrar uso</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">📦 Acciones de Inventario</div>
+            <div class="card-body">
+                <a href="{% url 'inventario:insumo_list' %}" class="btn btn-primary w-100 mb-2">
+                    📋 Ver Todos los Insumos
+                </a>
+                <a href="{% url 'inventario:insumo_create' %}" class="btn btn-success w-100 mb-2">
+                    ➕ Agregar Nuevo Insumo
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">📊 Análisis y Reportes</div>
+            <div class="card-body">
+                <a href="{% url 'inventario:uso_list' %}" class="btn btn-info w-100 mb-2">
+                    📈 Ver Historial de Uso
+                </a>
+                <a href="{% url 'inventario:proyeccion' %}" class="btn btn-warning w-100 mb-2">
+                    🔮 Ver Proyección de Compra
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

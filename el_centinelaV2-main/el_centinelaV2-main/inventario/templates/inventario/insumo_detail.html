@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ insumo.nombre }} - El Centinela{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                📦 {{ insumo.nombre }}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Código/ID:</th>
+                                <td>{% if insumo.id_codigo %}<code>{{ insumo.id_codigo }}</code>{% else %}<code class="text-muted">—</code>{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad Actual:</th>
+                                <td><strong class="text-success">{{ insumo.cantidad }} {{ insumo.get_unidad_display }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad Original:</th>
+                                <td>{{ insumo.cantidad_original }} {{ insumo.get_unidad_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad Usada:</th>
+                                <td>
+                                    <span class="text-warning">
+                                        {{ insumo.cantidad_original|add:"-"|add:insumo.cantidad|floatformat:2 }} {{ insumo.get_unidad_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Unidad:</th>
+                                <td>{{ insumo.get_unidad_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Estado:</th>
+                                <td>
+                                    {% if insumo.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Fechas</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Fecha Entrada:</th>
+                                <td>{{ insumo.fecha_entrada|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha Expiracion:</th>
+                                <td>
+                                    <strong>{{ insumo.fecha_expiracion|date:"d/m/Y" }}</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Días para Expirar:</th>
+                                <td>
+                                    {% if insumo.esta_expirado %}
+                                        <span class="badge-expired">EXPIRADO</span>
+                                    {% elif insumo.esta_proxima_a_expirar %}
+                                        <span class="badge-expiring">{{ insumo.dias_para_expirar }} días</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ insumo.dias_para_expirar }} días</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="mt-4">
+                    <a href="{% url 'inventario:insumo_update' insumo.pk %}" class="btn btn-warning">
+                        ✏️ Editar Insumo
+                    </a>
+                    <a href="{% url 'inventario:insumo_delete' insumo.pk %}" class="btn btn-danger">
+                        🗑️ Eliminar Insumo
+                    </a>
+                    <a href="{% url 'inventario:insumo_list' %}" class="btn btn-secondary">
+                        ← Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Statistics -->
+        <div class="card mb-3">
+            <div class="card-header">📊 Estadísticas de Uso</div>
+            <div class="card-body">
+                <div class="stats-card">
+                    <div class="stats-number" style="font-size: 1.5rem;">{{ uso_promedio }}</div>
+                    <div class="stats-label">{{ insumo.get_unidad_display }}/día (promedio)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="card">
+            <div class="card-header">📉 Consumo Vs. Original</div>
+            <div class="card-body">
+                {% if insumo.cantidad_original > 0 %}
+                    {% widthratio insumo.cantidad insumo.cantidad_original 100 as porcentaje %}
+                    <p class="mb-2">
+                        <strong>{{ porcentaje }}% Restante</strong>
+                    </p>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ porcentaje }}%;" aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ insumo.cantidad }}
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Usado: {{ insumo.cantidad_original|add:"-"|add:insumo.cantidad|floatformat:2 }} de {{ insumo.cantidad_original }}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage History Section -->
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                📈 Historial de Uso (Últimos 30 registros)
+            </div>
+            <div class="card-body">
+                {% if usos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Cantidad Usada</th>
+                                    <th>Unidad</th>
+                                    <th>Notas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for uso in usos %}
+                                    <tr>
+                                        <td>{{ uso.fecha|date:"d/m/Y" }}</td>
+                                        <td><strong>{{ uso.cantidad_usada }}</strong></td>
+                                        <td>{{ insumo.get_unidad_display }}</td>
+                                        <td>{{ uso.notas|default:"Sin notas" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No hay registros de uso para este insumo.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

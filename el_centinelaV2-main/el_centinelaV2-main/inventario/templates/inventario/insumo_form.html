@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        Editar Insumo - El Centinela
+    {% else %}
+        Agregar Nuevo Insumo - El Centinela
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card">
+            <div class="card-header">
+                {% if form.instance.pk %}
+                    ✏️ Editar Insumo
+                {% else %}
+                    ➕ Agregar Nuevo Insumo
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                            {{ form.nombre.label }}
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.nombre.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Ej: Pollo, Tomate, Aceite Vegetal</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_codigo.id_for_label }}" class="form-label">
+                            {{ form.id_codigo.label }}
+                        </label>
+                        {{ form.id_codigo }}
+                        {% if form.id_codigo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.id_codigo.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Escanea con QR o escribe el código. Ej: PROD-001, ABC123</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.cantidad.id_for_label }}" class="form-label">
+                                    {{ form.cantidad.label }}
+                                </label>
+                                {{ form.cantidad }}
+                                {% if form.cantidad.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.cantidad.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.unidad.id_for_label }}" class="form-label">
+                                    {{ form.unidad.label }}
+                                </label>
+                                {{ form.unidad }}
+                                {% if form.unidad.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.unidad.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.fecha_expiracion.id_for_label }}" class="form-label">
+                            {{ form.fecha_expiracion.label }}
+                        </label>
+                        {{ form.fecha_expiracion }}
+                        {% if form.fecha_expiracion.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.fecha_expiracion.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Formato: DD/MM/YYYY (Ejemplo: 25/12/2026)</small>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success">
+                            {% if form.instance.pk %}
+                                💾 Actualizar Insumo
+                            {% else %}
+                                ➕ Crear Insumo
+                            {% endif %}
+                        </button>
+                        <a href="{% url 'inventario:insumo_list' %}" class="btn btn-secondary">
+                            ← Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Validación de formulario Bootstrap
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+{% endblock %}

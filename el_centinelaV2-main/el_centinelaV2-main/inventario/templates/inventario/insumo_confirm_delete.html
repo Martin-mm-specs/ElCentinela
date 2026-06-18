@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Insumo - El Centinela{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 offset-lg-3">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                🗑️ Confirmar Eliminación
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">¿Eliminar este insumo?</h5>
+                <p class="text-muted">
+                    Estás a punto de eliminar el insumo <strong>{{ insumo.nombre }}</strong> ({{ insumo.cantidad }} {{ insumo.get_unidad_display }}).
+                </p>
+                <p class="alert alert-info">
+                    <strong>Nota:</strong> El insumo será marcado como inactivo, pero su historial de uso se mantendrá para análisis.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        ✓ Confirmar Eliminación
+                    </button>
+                    <a href="{% url 'inventario:insumo_detail' insumo.pk %}" class="btn btn-secondary">
+                        ← Cancelar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

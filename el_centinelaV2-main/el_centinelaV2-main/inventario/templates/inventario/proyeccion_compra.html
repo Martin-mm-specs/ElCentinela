@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Proyección de Compra - El Centinela{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                🔮 Proyección de Compra para los Próximos 7 Días
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Esta tabla muestra una proyección basada en el uso promedio de los últimos 7 días.
+                    Utiliza esta información para planificar tus compras y evitar desperdicio.
+                </p>
+                
+                {% if proyecciones %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th class="text-center">Uso Promedio Diario</th>
+                                    <th class="text-center">Cantidad Actual</th>
+                                    <th class="text-center">Recomendación (7 días)</th>
+                                    <th class="text-center">Días Disponibles</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in proyecciones %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'inventario:insumo_detail' item.insumo.pk %}">
+                                                <strong>{{ item.insumo.nombre }}</strong>
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ item.insumo.get_unidad_display }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ item.uso_promedio_diario }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            {{ item.cantidad_actual }}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.cantidad_recomendada > 0 %}
+                                                <strong class="text-info">{{ item.cantidad_recomendada }}</strong>
+                                            {% else %}
+                                                <span class="text-muted">Sin historial</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.dias_disponibles == 'inf' or item.dias_disponibles > 999 %}
+                                                <span class="badge bg-success">Suficiente</span>
+                                            {% elif item.dias_disponibles > 7 %}
+                                                <span class="badge bg-success">{{ item.dias_disponibles }} días</span>
+                                            {% elif item.dias_disponibles > 3 %}
+                                                <span class="badge bg-warning">{{ item.dias_disponibles }} días</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">{{ item.dias_disponibles }} días</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.uso_promedio_diario > 0 %}
+                                                {% if item.porcentaje >= 100 %}
+                                                    <span class="badge bg-success">✓ OK</span>
+                                                {% elif item.porcentaje >= 50 %}
+                                                    <span class="badge bg-warning">⚠ Considerar</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">✗ Comprar</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">Sin datos</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <h6>💡 Consejos para usar esta proyección:</h6>
+                        <ul class="mb-0">
+                            <li>La recomendación se basa en el consumo promedio de los últimos 7 días</li>
+                            <li>Un producto sin historial de uso no mostrará proyección</li>
+                            <li><strong class="badge bg-danger">Comprar:</strong> Stock < 50% de lo recomendado</li>
+                            <li><strong class="badge bg-warning">Considerar:</strong> Stock entre 50-100% de lo recomendado</li>
+                            <li><strong class="badge bg-success">OK:</strong> Stock >= 100% de lo recomendado</li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No hay datos suficientes para mostrar proyecciones.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

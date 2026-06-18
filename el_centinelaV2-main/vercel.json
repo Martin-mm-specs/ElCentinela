@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "ElCentinela/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "ElCentinela/wsgi.py"
+    }
+  ]
+}

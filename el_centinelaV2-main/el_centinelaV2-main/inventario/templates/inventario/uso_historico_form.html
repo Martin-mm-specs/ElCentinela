@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Uso de Insumo - El Centinela{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card">
+            <div class="card-header">
+                📝 Registrar Uso de Insumo
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="insumo_busqueda" class="form-label">
+                            🔍 Buscar Insumo
+                        </label>
+                        <input 
+                            type="text" 
+                            id="insumo_busqueda" 
+                            class="form-control" 
+                            placeholder="Escribe para buscar por nombre o ID..." 
+                            autocomplete="off"
+                        >
+                        <small class="form-text text-muted">Búsqueda interactiva - Los insumos se ordenan por fecha de vencimiento (primero los que vencen antes)</small>
+                        
+                        <!-- Contenedor para las sugerencias -->
+                        <div id="sugerencias_contenedor" class="list-group mt-2" style="display: none; max-height: 300px; overflow-y: auto;">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.insumo.id_for_label }}" class="form-label">
+                            ✓ Insumo Seleccionado
+                        </label>
+                        {{ form.insumo }}
+                        {% if form.insumo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.insumo.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Selecciona un insumo de las sugerencias o desplegable.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.cantidad_usada.id_for_label }}" class="form-label">
+                            {{ form.cantidad_usada.label }}
+                        </label>
+                        {{ form.cantidad_usada }}
+                        {% if form.cantidad_usada.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.cantidad_usada.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Cantidad en las mismas unidades que el insumo</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notas.id_for_label }}" class="form-label">
+                            {{ form.notas.label }}
+                        </label>
+                        {{ form.notas }}
+                        {% if form.notas.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notas.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Opcional: añade cualquier nota relevante (Ej: Comida cancelada, Desperdicio)</small>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success">
+                            ✓ Registrar Uso
+                        </button>
+                        <a href="{% url 'inventario:dashboard' %}" class="btn btn-secondary">
+                            ← Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const busquedaInput = document.getElementById('insumo_busqueda');
+        const insumoSelect = document.getElementById('insumo_select');
+        const sugerenciasContenedor = document.getElementById('sugerencias_contenedor');
+        let insumosData = [];
+        
+        // Cargar insumos disponibles
+        async function cargarInsumos(query = '') {
+            try {
+                const url = new URL('{% url "inventario:buscar_insumos_api" %}', window.location.origin);
+                if (query) {
+                    url.searchParams.append('q', query);
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                insumosData = data.insumos;
+                
+                // Mostrar sugerencias si hay búsqueda
+                if (query && insumosData.length > 0) {
+                    mostrarSugerencias();
+                } else if (query) {
+                    sugerenciasContenedor.innerHTML = '<div class="list-group-item text-muted">No se encontraron insumos</div>';
+                    sugerenciasContenedor.style.display = 'block';
+                } else {
+                    sugerenciasContenedor.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error cargando insumos:', error);
+            }
+        }
+        
+        // Mostrar sugerencias de insumos
+        function mostrarSugerencias() {
+            sugerenciasContenedor.innerHTML = '';
+            
+            insumosData.forEach(insumo => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action';
+                if (insumo.esta_proxima_a_expirar) {
+                    item.classList.add('list-group-item-warning');
+                }
+                
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>[${insumo.id_codigo}] ${insumo.nombre}</strong>
+                            <div class="small text-muted">
+                                Vence: <strong>${insumo.fecha_expiracion}</strong> (${insumo.dias_para_expirar} días)
+                                | Disponible: <strong>${insumo.cantidad} ${insumo.unidad}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    seleccionarInsumo(insumo);
+                });
+                
+                sugerenciasContenedor.appendChild(item);
+            });
+            
+            sugerenciasContenedor.style.display = 'block';
+        }
+        
+        // Seleccionar insumo de las sugerencias
+        function seleccionarInsumo(insumo) {
+            insumoSelect.value = insumo.id;
+            busquedaInput.value = insumo.display_text;
+            sugerenciasContenedor.style.display = 'none';
+        }
+        
+        // Event listeners
+        busquedaInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            if (query.length > 0) {
+                cargarInsumos(query);
+            } else {
+                sugerenciasContenedor.style.display = 'none';
+                insumosData = [];
+            }
+        });
+        
+        // Cerrar sugerencias al hacer click fuera
+        document.addEventListener('click', function(e) {
+            if (e.target !== busquedaInput && !sugerenciasContenedor.contains(e.target)) {
+                sugerenciasContenedor.style.display = 'none';
+            }
+        });
+        
+        // Cargar insumos al abrir la página (para mostrar los primeros en desaparecer)
+        cargarInsumos();
+    });
+</script>
+{% endblock %}

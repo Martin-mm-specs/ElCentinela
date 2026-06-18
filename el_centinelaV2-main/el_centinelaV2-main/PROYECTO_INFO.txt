@@ -1,0 +1,568 @@
+================================================================================
+🔴 LEER PRIMERO: CAMBIOS v2.0 - 7 CARACTERÍSTICAS IMPLEMENTADAS
+================================================================================
+
+IMPORTANTE PARA DEVELOPERS: Lee esta sección PRIMERO para entender el proyecto.
+
+CAMBIOS REALIZADOS EN v2.0 (Sesión actual):
+
+1. ID AUTO-INCREMENT
+   Ubicación: inventario/models.py → Insumo model
+   Estado: ✅ HECHO
+   Detalle: BigAutoField nativo en Django (automático)
+
+2. VALIDACIÓN DE FECHA
+   Ubicación: inventario/forms.py → InsumoForm.clean_fecha_expiracion()
+   Estado: ✅ HECHO
+   Detalle: Rechaza fechas < timezone.now().date() con ValidationError
+   Mensaje: "El insumo ya expiró. No puedes ingresar una fecha que ya pasó"
+
+3. FORMATO DD/MM/YYYY
+   Ubicación: inventario/templates/inventario/insumo_form.html + forms.py
+   Estado: ✅ HECHO
+   Detalle: TextInput con placeholder "DD/MM/YYYY (Ejemplo: 25/12/2026)"
+
+4. ERROR PROYECCION_COMPRA.HTML CORREGIDO
+   Ubicación: inventario/views.py → proyeccion_compra() + template
+   Estado: ✅ HECHO
+   Problema original: "Could not parse the remainder: '*' from '*'" (línea 67)
+   Solución: Movida aritmética a views.py, template usa {{ item.porcentaje }}
+
+5. CANTIDAD ORIGINAL VS ACTUAL
+   Ubicación: inventario/models.py → Insumo (campo cantidad_original)
+   Cambios: 
+     • models.py: +campo DecimalField
+     • forms.py: NO editable (auto-set en view)
+     • views.py: InsumoCreateView.form_valid() → cantidad_original = cantidad
+     • templates: insumo_detail.html muestra progreso
+   Estado: ✅ HECHO
+   Tracking: original vs actual, barra de progreso
+
+6. BUSCADOR INTELIGENTE + ORDENAMIENTO VENCIMIENTO
+   Ubicación: inventario/forms.py + uso_historico_form.html
+   Cambios:
+     • forms.py: +campo insumo_busqueda, queryset ordenado
+     • template: JavaScript para filtro real-time
+   Estado: ✅ HECHO
+   Detalle: Busca mientras escribes, ordena por fecha_expiracion, excluye expirados
+
+7. SISTEMA DE ALERTAS EN BD
+   Ubicación: inventario/models.py → AlertaMensaje (NUEVO MODEL)
+   Cambios:
+     • models.py: +modelo AlertaMensaje (7 campos)
+     • views.py: +generar_alertas_insumo(), +generar_todas_alertas()
+     • views.py: +descartar_alerta() view
+     • urls.py: +ruta descartar_alerta/<int:alerta_id>/
+     • admin.py: +AlertaMensajeAdmin
+     • dashboard.html: +sección alertas con botones X
+   Estado: ✅ HECHO
+   Flujo: generar_todas_alertas() se ejecuta al cargar dashboard,
+          usuario puede descartar con botón X,
+          se regeneran automáticamente al registrar uso
+
+BASE DE DATOS:
+  • Nueva tabla: inventario_alertamensaje (7 campos)
+  • Campo nuevo: inventario_insumo.cantidad_original
+  • Migraciones: 0001_initial.py actualizado
+
+ARCHIVOS MODIFICADOS EN v2.0:
+  ✅ inventario/models.py
+  ✅ inventario/forms.py
+  ✅ inventario/views.py
+  ✅ inventario/admin.py
+  ✅ inventario/urls.py
+  ✅ inventario/migrations/0001_initial.py
+  ✅ 5 templates HTML
+
+VERIFICACIÓN RÁPIDA:
+  → Abre models.py y busca "cantidad_original" y "AlertaMensaje"
+  → Abre views.py y busca "generar_alertas" y "descartar_alerta"
+  → Abre dashboard.html y busca "alertas" con botón X
+  → Ejecuta: python manage.py migrate (si es necesario)
+
+================================================================================
+EL CENTINELA - SISTEMA DE GESTIÓN DE INVENTARIO PARA RESTAURANTES
+================================================================================
+
+DESCRIPCIÓN DEL PROYECTO
+========================
+El Centinela es una aplicación web desarrollada en Django que permite a los 
+restaurantes gestionar eficientemente su inventario de insumos, reduciendo el 
+desperdicio y optimizando las compras.
+
+El sistema permite:
+- Registrar insumos con identificadores únicos (códigos, códigos QR)
+- Rastrear fechas de vencimiento y recibir alertas
+- Registrar el consumo diario de insumos
+- Calcular promedios de uso y proyecciones de compra
+- Visualizar un historial completo de movimientos
+
+================================================================================
+CARACTERÍSTICAS PRINCIPALES
+================================================================================
+
+1. DASHBOARD (Página Principal)
+   - Sección de alertas persistentes con botón X para descartar
+   - Alertas se regeneran automáticamente al recargar
+   - Estadísticas generales del inventario
+   - Usos registrados del día actual
+   - Acceso rápido a todas las funciones
+
+2. GESTIÓN DE INSUMOS
+   - Crear nuevos insumos
+   - Editar información de insumos existentes
+   - Marcar insumos como eliminados (soft delete)
+   - Listar todos los insumos activos con paginación
+   - Ver detalles completos de cada insumo (cantidad_original vs actual)
+   - Barra de progreso visual del consumo
+
+3. REGISTRO DE USO
+   - Buscador inteligente con filtro en tiempo real
+   - Insumos ordenados automáticamente por fecha de vencimiento
+   - Excluye automáticamente insumos expirados
+   - Al registrar uso: resta cantidad automáticamente
+   - Al registrar uso: regenera alertas automáticamente
+   - Agregar notas sobre el uso
+
+4. HISTORIAL Y ESTADÍSTICAS
+   - Ver historial agrupado por fecha
+   - Estadísticas de uso promedio
+   - Cálculo automático de últimos 7 días
+
+5. PROYECCIÓN DE COMPRA
+   - Calcular uso promedio de últimos 7 días
+   - Proyectar necesidades para los próximos 7 días
+   - Recomendaciones automáticas de compra
+   - Estado de suficiencia de inventario
+   - Porcentaje calculado en backend
+
+6. ALERTAS (NUEVO en v2.0)
+   - Insumos que vencen en 3 días o menos
+   - Insumos ya expirados
+   - Se generan automáticamente al cargar dashboard
+   - Se regeneran automáticamente al registrar uso
+   - Se guardan en base de datos (persistentes)
+   - Se pueden descartar con botón X
+   - No duplica alertas iguales
+
+================================================================================
+ESTRUCTURA DEL PROYECTO
+================================================================================
+
+ElCentinela/
+├── manage.py                          # Script para administrar Django
+├── db.sqlite3                         # Base de datos (se crea al ejecutar migraciones)
+│
+├── ElCentinela/                       # Configuración principal del proyecto
+│   ├── __init__.py
+│   ├── settings.py                    # Configuración de Django
+│   ├── urls.py                        # Rutas principales
+│   ├── asgi.py
+│   └── wsgi.py
+│
+└── inventario/                        # Aplicación principal
+    ├── migrations/                    # Migraciones de base de datos
+    │   └── 0001_initial.py
+    │
+    ├── templates/                     # Archivos HTML
+    │   ├── base.html                  # Plantilla base (layout principal)
+    │   └── inventario/
+    │       ├── dashboard.html         # Página principal
+    │       ├── insumo_list.html       # Lista de insumos
+    │       ├── insumo_detail.html     # Detalles de un insumo
+    │       ├── insumo_form.html       # Formulario crear/editar insumo
+    │       ├── insumo_confirm_delete.html  # Confirmación de eliminación
+    │       ├── uso_historico_list.html    # Historial de uso
+    │       ├── uso_historico_form.html    # Formulario registrar uso
+    │       └── proyeccion_compra.html     # Proyección de compra
+    │
+    ├── static/                        # Archivos estáticos (CSS, JS)
+    │   ├── css/
+    │   └── js/
+    │
+    ├── __init__.py
+    ├── admin.py                       # Interfaz de administración de Django
+    ├── apps.py                        # Configuración de la aplicación
+    ├── models.py                      # Modelos de base de datos
+    ├── views.py                       # Lógica de las vistas
+    ├── forms.py                       # Formularios de Django
+    ├── urls.py                        # Rutas de la aplicación
+    └── tests.py                       # Pruebas unitarias
+
+================================================================================
+MODELOS DE BASE DE DATOS
+================================================================================
+
+1. INSUMO
+   - id (PK): ID automático
+   - nombre: Nombre del insumo (Ej: Pollo, Tomate)
+   - id_codigo: Código único o QR del producto
+   - cantidad: Cantidad ACTUAL en el inventario
+   - cantidad_original: Cantidad ORIGINAL cuando se ingresó (NUEVO en v2.0)
+   - unidad: Unidad de medida (kg, g, ml, l, unidad, docena)
+   - fecha_entrada: Fecha/hora cuando se agregó al inventario
+   - fecha_expiracion: Fecha de vencimiento
+   - activo: Boolean para marcar como eliminado sin borrar la BD
+
+   MÉTODOS ÚTILES:
+   - dias_para_expirar: Devuelve días faltantes para expiración
+   - esta_proxima_a_expirar: True si expira en ≤ 3 días
+   - esta_expirado: True si ya pasó la fecha de expiración
+
+2. USOHISTORICO
+   - id (PK): ID automático
+   - insumo (FK): Referencia al insumo utilizado
+   - cantidad_usada: Cantidad consumida
+   - fecha: Fecha del uso (automática)
+   - notas: Notas adicionales (opcional)
+
+   NOTA: Cuando se crea un UsoHistorico:
+         • insumo.cantidad se resta automáticamente
+         • Se regeneran las AlertaMensaje si es necesario
+
+3. ESTADISTICASUSO
+   - id (PK): ID automático
+   - insumo (OneToOne): Referencia única al insumo
+   - uso_promedio_diario: Promedio calculado
+   - ultima_actualizacion: Última vez que se calculó
+
+   MÉTODO:
+   - calcular_promedio(insumo): Calcula promedio de últimos 7 días
+
+4. ALERTAMENSAJE (NUEVO en v2.0)
+   - id (PK): ID automático
+   - titulo: Título de la alerta (Ej: "Aceite vence pronto")
+   - descripcion: Descripción completa
+   - tipo: Choices ['vencimiento', 'expirado', 'bajo_stock', 'info']
+   - insumo (FK nullable): Referencia al insumo (puede ser NULL)
+   - fecha_creacion: Timestamp automático
+   - activa: Boolean para marcar como leída/descartada
+
+   FLUJO:
+   • generar_alertas_insumo(insumo) crea/recrea alertas
+   • generar_todas_alertas() se ejecuta al cargar dashboard
+   • Usuario puede descartar con botón X
+   • descartar_alerta(request, alerta_id) las elimina de BD
+
+================================================================================
+RUTAS Y VISTAS
+================================================================================
+
+RUTAS PRINCIPALES:
+  
+  /                                  → Dashboard (página principal + alertas)
+  /insumos/                          → Lista de insumos
+  /insumos/crear/                    → Crear nuevo insumo
+  /insumos/<id>/                     → Ver detalles del insumo
+  /insumos/<id>/editar/              → Editar insumo
+  /insumos/<id>/eliminar/            → Eliminar insumo (soft delete)
+  /historial/                        → Historial de uso agrupado por fecha
+  /historial/registrar/              → Registrar nuevo uso (con buscador)
+  /proyeccion/                       → Proyección de compra para 7 días
+  /descartar_alerta/<id>/            → Descartar alerta por ID (NUEVO v2.0)
+  /admin/                            → Panel de administración de Django
+
+VISTAS (En views.py):
+
+  dashboard()                        → Genera alertas, renderiza con stats
+  InsumoListView                     → List view de insumos (paginada)
+  InsumoDetailView                   → Detalles de un insumo (muestra cantidad_original)
+  InsumoCreateView                   → Crear insumo (auto-set cantidad_original)
+  InsumoUpdateView                   → Editar insumo existente
+  InsumoDeleteView                   → Marcar como inactivo (soft delete)
+  UsoHistoricoListView               → Historial agrupado por fecha
+  UsoHistoricoCreateView             → Registrar uso (resta cantidad + genera alertas)
+  proyeccion_compra()                → Proyección con cálculo de porcentaje
+  descartar_alerta()                 → Elimina AlertaMensaje (NUEVO v2.0)
+  generar_alertas_insumo()           → Crea alertas para un insumo (NUEVO v2.0)
+  generar_todas_alertas()            → Itera todos insumos y genera alertas (NUEVO v2.0)
+
+================================================================================
+CONFIGURACIÓN
+================================================================================
+
+ARCHIVOS CLAVE MODIFICADOS:
+
+settings.py:
+  - INSTALLED_APPS: Agregada 'inventario'
+  - TEMPLATES: DIRS apunta a 'inventario/templates'
+  - LANGUAGE_CODE: 'es-mx' (español)
+  - TIME_ZONE: 'America/Mexico_City'
+
+urls.py:
+  - Incluye rutas de la aplicación inventario
+  - Path raíz ('') enruta a las URLs de inventario
+
+================================================================================
+INSTALACIÓN Y EJECUCIÓN
+================================================================================
+
+REQUISITOS:
+  - Python 3.8+
+  - Django 6.0.6
+  - Navegador web moderno
+
+PASOS:
+
+1. Crear y activar entorno virtual:
+   $ python -m venv venv
+   $ venv\Scripts\activate  # En Windows
+
+2. Instalar dependencias:
+   $ pip install django==6.0.6
+
+3. Aplicar migraciones (crear base de datos):
+   $ python manage.py migrate
+
+4. Crear superusuario (admin):
+   $ python manage.py createsuperuser
+   # Ingresar username, email, password
+
+5. Ejecutar servidor de desarrollo:
+   $ python manage.py runserver
+   
+   El sitio estará disponible en: http://127.0.0.1:8000/
+
+6. Panel de administración (Django Admin):
+   http://127.0.0.1:8000/admin/
+   (Usar las credenciales del superusuario creado)
+
+================================================================================
+FLUJO TÍPICO DE USO
+================================================================================
+
+ESCENARIO: Restaurant que abre su negocio
+
+1. El gerente accede al dashboard (página principal)
+
+2. Agrega insumos iniciales:
+   - Click en "Agregar Nuevo Insumo"
+   - Completa: nombre, código QR, cantidad, unidad, fecha_expiracion
+   - Repite para todos los insumos iniciales
+
+3. Cada día, registra el consumo:
+   - Click en "Registrar Uso"
+   - Selecciona el insumo utilizado
+   - Ingresa cantidad consumida
+   - Agrega notas si es necesario (Ej: "Comida cancelada")
+
+4. Revisa alertas en el dashboard:
+   - Ve automáticamente insumos a vencer (< 3 días)
+   - Accede a detalles para ver más información
+
+5. Después de 7 días, usa la proyección:
+   - Accede a "Proyección de Compra"
+   - Ve recomendaciones automáticas
+   - Compra exactamente lo que necesita
+
+================================================================================
+FORMULARIOS DISPONIBLES
+================================================================================
+
+InsumoForm (En forms.py):
+  Campos:
+  - nombre: Nombre del insumo
+  - id_codigo: Código o QR (patrón: [A-Za-z0-9-]*)
+  - cantidad: Número decimal
+  - unidad: Select con opciones
+  - fecha_expiracion: Date picker
+
+UsoHistoricoForm:
+  Campos:
+  - insumo: Select (solo insumos activos)
+  - cantidad_usada: Número decimal
+  - notas: Textarea (opcional)
+
+================================================================================
+ADMIN DJANGO
+================================================================================
+
+Accede a: http://127.0.0.1:8000/admin/
+
+Desde aquí puedes:
+- Ver, crear, editar y eliminar insumos
+- Ver, crear, editar y eliminar registros de uso
+- Ver estadísticas de uso
+- Filtrar por múltiples criterios
+- Buscar por nombre o código
+
+Clases Admin configuradas:
+  - InsumoAdmin: Gestión completa de insumos
+  - UsoHistoricoAdmin: Gestión de historial con jerarquía de fechas
+  - EstadisticasUsoAdmin: Visualización de estadísticas
+
+================================================================================
+FUNCIONES ESPECIALES EXPLICADAS
+================================================================================
+
+SOFT DELETE (Eliminación Lógica):
+  - Al eliminar un insumo, se marca como inactivo (activo=False)
+  - El insumo NO se borra de la base de datos
+  - El historial se mantiene para análisis
+  - No aparece en listas regulares
+
+CÁLCULO DE PROMEDIOS:
+  - EstadisticasUso.calcular_promedio(insumo)
+  - Toma los últimos 7 días de uso
+  - Suma las cantidades y divide entre 7
+  - Se usa para proyecciones de compra
+
+PROYECCIÓN DE COMPRA:
+  - Usa el uso_promedio_diario
+  - Multiplica por 7 para recomendar compra semanal
+  - Compara con stock actual
+  - Indica si: Comprar urgente / Considerar / Stock OK
+
+================================================================================
+ESTRUCTURA DE TEMPLATING
+================================================================================
+
+base.html (Plantilla base):
+  - Navbar con menú de navegación
+  - Sidebar con acciones rápidas
+  - Zona de mensajes (alerts)
+  - Footer
+  - Bootstrap 5 para estilos
+  - CSS custom personalizado
+
+Características de CSS:
+  - Variables de color personalizadas
+  - Diseño responsive
+  - Cards con hover effects
+  - Badges de estado
+  - Tabla con colores alternados
+  - Formularios con validación visual
+
+Todas las páginas heredan de base.html
+{% extends 'base.html' %}
+
+================================================================================
+PRÓXIMAS MEJORAS Y CARACTERÍSTICAS FUTURAS
+================================================================================
+
+1. AUTENTICACIÓN:
+   - Sistema de login/logout
+   - Diferentes roles (Admin, Gerente, Chef)
+   - Permisos basados en roles
+
+2. REPORTES:
+   - Reporte de insumos más utilizados
+   - Análisis de costo vs uso
+   - Reporte de desperdicio
+
+3. INTEGRACIONES:
+   - Scanner de QR integrado en la interfaz
+   - Integración con APIs de proveedores
+   - Exportación a Excel/PDF
+
+4. MEJORAS DE DATOS:
+   - Historial de precios de compra
+   - Cálculo de costo de operación diario
+   - Predicción de compras por temporada
+
+5. NOTIFICACIONES:
+   - Email cuando insumos vencen
+   - Alerts en tiempo real
+   - Notificaciones push
+
+6. MULTI-RESTAURANTE:
+   - Soportar múltiples sucursales
+   - Comparativas entre restaurantes
+   - Agregación de datos
+
+================================================================================
+NOTAS DE DESARROLLO
+================================================================================
+
+NAMING CONVENTIONS:
+  - Models: PascalCase (Insumo, UsoHistorico)
+  - Methods/Functions: snake_case (dias_para_expirar)
+  - Templates: snake_case (insumo_list.html)
+  - URLs: snake_case con guiones (insumo-list)
+  - Views class: PascalCase + "View" (InsumoListView)
+
+PATRONES UTILISADOS:
+  - Class-Based Views para CRUD
+  - ModelForm para formularios
+  - QuerySet filtering en views
+  - Soft delete (flag active)
+  - Datetime fields con timezone awareness
+
+BASE DE DATOS:
+  - SQLite para desarrollo
+  - Usar PostgreSQL en producción
+  - Migraciones con Django migration framework
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "No such table: inventario_insumo"
+SOLUCIÓN: $ python manage.py migrate
+
+ERROR: "TemplateDoesNotExist"
+SOLUCIÓN: Verifica TEMPLATES['DIRS'] en settings.py
+
+ERROR: "ImportError: cannot import name 'inventario'"
+SOLUCIÓN: Asegúrate que 'inventario' esté en INSTALLED_APPS
+
+ERROR: Formulario sin estilos
+SOLUCIÓN: Verifica que Bootstrap se cargue desde CDN en base.html
+
+ERROR: Timezone issues
+SOLUCIÓN: TIME_ZONE debe ser correcto en settings.py
+
+================================================================================
+COMANDOS ÚTILES
+================================================================================
+
+# Ver todas las rutas disponibles
+python manage.py show_urls
+
+# Crear migraciones después de cambiar modelos
+python manage.py makemigrations
+
+# Aplicar migraciones
+python manage.py migrate
+
+# Crear superusuario
+python manage.py createsuperuser
+
+# Shell interactivo de Django
+python manage.py shell
+
+# Ejemplo en shell:
+from inventario.models import Insumo
+insumos = Insumo.objects.all()
+for i in insumos:
+    print(i.nombre)
+
+# Limpiar base de datos
+python manage.py flush  # ¡CUIDADO! Borra todo
+
+# Exportar datos
+python manage.py dumpdata inventario > backup.json
+
+# Importar datos
+python manage.py loaddata backup.json
+
+================================================================================
+CONTACTO Y SOPORTE
+================================================================================
+
+Para reportar bugs o sugerir mejoras, documenta:
+- Versión de Django
+- Versión de Python
+- Pasos para reproducir el error
+- Mensaje de error completo
+
+================================================================================
+LICENCIA
+================================================================================
+
+Este proyecto está disponible bajo licencia MIT.
+Úsalo, modifícalo, distribúyelo libremente.
+
+================================================================================
+ÚLTIMA ACTUALIZACIÓN: 2026-06-14
+================================================================================
